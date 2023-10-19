@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    async function main() {
+        let pyodide = await loadPyodide();
+        await pyodide.loadPackage("micropip");
+        const micropip = pyodide.pyimport("micropip");
+        await micropip.install("https://github.com/josephrocca/tokenizers-pyodide/blob/main/demo/tokenizers_python-0.11.0-cp310-cp310-emscripten_3_1_14_wasm32.whl");
+        let pythonCode = await (await fetch("tokenizer_test.py")).text(); 
+        console.log(pyodide.runPython(pythonCode));
+     }
+    main();
+    /*
+    ERROR
+    ValueError: Wheel was built with Emscripten v3.1.14 but Pyodide was built with Emscripten v3.1.45
+    */
+    </script>
+  </body>
+</html>
