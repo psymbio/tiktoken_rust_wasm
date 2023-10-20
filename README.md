@@ -194,6 +194,10 @@ ImportError: Can't connect to HTTPS URL because the SSL module is not available.
     at main (index3.html:14:29)
 ```
 
+Also, requests library is something that doesn't work at all - look at https://github.com/pyodide/pyodide/issues/3711 (very recent issue) and developers agree on that fact
+
+--> will resolve on 2023/10/21
+
 ## Tiktoken Request Library Issues
 1. Requests library dependency issue: https://www.google.com/search?q=pyodide+requests (how to use the requests library in python) lands us here: https://github.com/pyodide/pyodide/issues/398 where you can see at the bottom that @lesteve metions how scikit-bio v0.5.8 needs to be implemented with pyodide (https://github.com/pyodide/pyodide/pull/3858) and this lands us here (https://github.com/pyodide/pyodide/issues/3876) 
 

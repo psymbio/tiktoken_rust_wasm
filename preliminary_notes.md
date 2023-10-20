@@ -78,7 +78,7 @@ RUSTUP_TOOLCHAIN=nightly maturin build --release -o dist --target wasm32-unknown
 1. Do have a look at this work that he did for tokenizers: https://github.com/josephrocca/tokenizers/tree/pyodide and https://github.com/josephrocca/tokenizers-pyodide
 2. Another related issue: https://github.com/huggingface/tokenizers/issues/1010
 3. Getting this to work, understanding micropips, wheels and working with python on the web: https://www.youtube.com/watch?v=iJmQIfmtfVk&ab_channel=MattCodes and https://www.youtube.com/watch?v=zjtQZkKV1zA&ab_channel=MattCodes
-4. Another relevant path (look at this on 20th October 2023):
+4. Another relevant path (look at this on 2023/10/20):
 https://pyodide.org/en/stable/development/building-and-testing-packages.html#building-and-testing-packages-out-of-tree
 https://pyodide.org/en/stable/development/building-and-testing-packages.html#building-and-testing-packages-out-of-tree
 
