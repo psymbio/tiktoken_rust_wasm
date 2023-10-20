@@ -28,9 +28,9 @@ pip install ./pyodide-build
 # https://github.com/pola-rs/polars/issues/3672
 git clone https://github.com/emscripten-core/emsdk.git # tested and working at commit hash 961e66c
 cd emsdk/
-./emsdk install 3.1.14
-./emsdk activate 3.1.14
-source ./emsdk_env.sh
+./emsdk install 3.1.45
+./emsdk activate 3.1.45
+source "/src/emsdk/emsdk_env.sh"
 
 # https://github.com/huggingface/tokenizers/issues/1010
 git clone https://github.com/openai/tiktoken.git
@@ -70,10 +70,10 @@ Then we need to download the wheel. So, outside the docker container terminal i.
 
 ```
 docker ps -a
-# notedown the container name that your container runs on
+# notedown the container id that your container runs on
 # now download the wheel file to your local filesystem
 # for me this looked like
-docker cp 293695c6e022:/src/tiktoken/dist/tiktoken-0.5.1-cp310-cp310-emscripten_3_1_14_wasm32.whl .
+docker cp 293695c6e022:/src/tiktoken/dist/tiktoken-0.5.1-cp310-cp310-emscripten_3_1_45_wasm32.whl .
 ```
 
 ## Tiktoken Request Library Issues
