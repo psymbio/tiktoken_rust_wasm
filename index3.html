@@ -9,7 +9,7 @@
         let pyodide = await loadPyodide();
         await pyodide.loadPackage("micropip");
         const micropip = pyodide.pyimport("micropip");
-        await micropip.install("https://github.com/psymbio/tiktoken_rust_wasm/blob/main/packages/build_emscripten/tiktoken-0.5.1-cp310-cp310-emscripten_3_1_14_wasm32.whl");
+        await micropip.install("https://github.com/psymbio/tiktoken_rust_wasm/blob/main/packages/build_emscripten/tiktoken-0.5.1-cp310-cp310-emscripten_3_1_45_wasm32.whl");
         let pythonCode = await (await fetch("tokenizer_test.py")).text(); 
         console.log(pyodide.runPython(pythonCode));
      }

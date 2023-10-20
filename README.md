@@ -28,7 +28,7 @@ pip install ./pyodide-build
 # https://github.com/pola-rs/polars/issues/3672
 git clone https://github.com/emscripten-core/emsdk.git # tested and working at commit hash 961e66c
 cd emsdk/
-./emsdk install 3.1.45
+./emsdk install 3.1.45 # new update changed from 3.1.14 to 3.1.45
 ./emsdk activate 3.1.45
 source "/src/emsdk/emsdk_env.sh"
 
@@ -75,6 +75,59 @@ docker ps -a
 # for me this looked like
 docker cp 293695c6e022:/src/tiktoken/dist/tiktoken-0.5.1-cp310-cp310-emscripten_3_1_45_wasm32.whl .
 ```
+
+Now after checking the compilation of the code I end up with this error:
+```console
+Uncaught (in promise) PythonError: Traceback (most recent call last):
+  File "/lib/python3.11/site-packages/micropip/_commands/install.py", line 142, in install
+    await transaction.gather_requirements(requirements)
+  File "/lib/python3.11/site-packages/micropip/transaction.py", line 204, in gather_requirements
+    await asyncio.gather(*requirement_promises)
+  File "/lib/python3.11/site-packages/micropip/transaction.py", line 215, in add_requirement
+    check_compatible(wheel.filename)
+  File "/lib/python3.11/site-packages/micropip/_utils.py", line 183, in check_compatible
+    raise ValueError(
+ValueError: Wheel abi 'cp310' is not supported. Supported abis are 'abi3' and 'cp311'.
+
+    at new_error (pyodide.asm.js:9:12519)
+    at pyodide.asm.wasm:0x158827
+    at pyodide.asm.wasm:0x15fcd5
+    at _PyCFunctionWithKeywords_TrampolineCall (pyodide.asm.js:9:123052)
+    at pyodide.asm.wasm:0x1a3091
+    at pyodide.asm.wasm:0x289e4d
+    at pyodide.asm.wasm:0x1e3f77
+    at pyodide.asm.wasm:0x1a3579
+    at pyodide.asm.wasm:0x1a383a
+    at pyodide.asm.wasm:0x1a38dc
+    at pyodide.asm.wasm:0x2685c5
+    at pyodide.asm.wasm:0x26e3d0
+    at pyodide.asm.wasm:0x1a3a04
+    at pyodide.asm.wasm:0x1a3694
+    at pyodide.asm.wasm:0x15f45e
+    at Module.callPyObjectKwargs (pyodide.asm.js:9:81732)
+    at Module.callPyObject (pyodide.asm.js:9:82066)
+    at wrapper (pyodide.asm.js:9:58562)
+```
+
+Google search https://www.google.com/search?q=emscripten+cp310 lands you here https://pyodide.org/en/latest/development/building-and-testing-packages.html Therefore, I'm going back to the docker container to check if the build 
+
+
+```
+# in the docker container
+# in src/tiktoken
+pyodide build
+# an error said consider running: `rustup default nightly` 
+rustup default nightly
+pyodide build
+```
+
+Then once again copy it to your local from the docker container (tiktoken-0.5.1-cp311-cp311-emscripten_3_1_45_wasm32.whl)
+
+```bash
+# outside the docker container
+docker cp 293695c6e022:/src/tiktoken/dist/tiktoken-0.5.1-cp311-cp311-emscripten_3_1_45_wasm32.whl .
+```
+
 
 ## Tiktoken Request Library Issues
 1. Requests library dependency issue: https://www.google.com/search?q=pyodide+requests (how to use the requests library in python) lands us here: https://github.com/pyodide/pyodide/issues/398 where you can see at the bottom that @lesteve metions how scikit-bio v0.5.8 needs to be implemented with pyodide (https://github.com/pyodide/pyodide/pull/3858) and this lands us here (https://github.com/pyodide/pyodide/issues/3876) 
