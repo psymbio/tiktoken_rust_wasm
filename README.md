@@ -1,8 +1,10 @@
+# Tiktoken Python+Rust (non-pure Python) WASM
+
 ## Preliminary Notes
 1. https://stackoverflow.com/questions/65185874/is-it-possible-to-build-python-wheel-in-browser-using-wasm-for-pyodide basically we can install wheels using micropip - this issue however wants to take it one step forward by building a wheel using pyodide.
 2. https://stackoverflow.com/questions/52214136/how-do-i-deploy-a-python-wheels-package-statically-on-a-custom-cdn-server
 There's no need to deploy using CDN, or pypiserver - just upload the wheel file on github and download using the link.
-3. https://pypi.org/project/pypiserver (basically allows you to create a server and upload wheel files but this isn't needed as you simply use github to upload and download from there.). The steps to use this can be found in this ![video](https://www.youtube.com/watch?v=UCY12pGM4oM&ab_channel=AustinTechLive) and the documentation.
+3. https://pypi.org/project/pypiserver (basically allows you to create a server and upload wheel files but this isn't needed as you simply use github to upload and download from there.). The steps to use this can be found in this [video](https://www.youtube.com/watch?v=UCY12pGM4oM&ab_channel=AustinTechLive) and the documentation.
 
 ## Documentation on the actual issue
 1. https://discuss.python.org/t/support-wasm-wheels-on-pypi/21924/8 (Google search: "python wheel webassembly" resulted in this)
@@ -52,7 +54,6 @@ git pull
 ./emsdk activate latest
 # Activate PATH and other environment variables in the current terminal
 source ./emsdk_env.sh
-
 # verify the emscripten version
 ```
 
