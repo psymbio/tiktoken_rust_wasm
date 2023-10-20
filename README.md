@@ -1,46 +1,130 @@
-# Tiktoken Python+Rust (non-pure Python) WASM
+# Emscripten Setup for Python+Rust (non-pure Python) Packages
 
-## Preliminary Notes
-1. https://stackoverflow.com/questions/65185874/is-it-possible-to-build-python-wheel-in-browser-using-wasm-for-pyodide basically we can install wheels using micropip - this issue however wants to take it one step forward by building a wheel using pyodide.
-2. https://stackoverflow.com/questions/52214136/how-do-i-deploy-a-python-wheels-package-statically-on-a-custom-cdn-server
-There's no need to deploy using CDN, or pypiserver - just upload the wheel file on github and download using the link.
-3. https://pypi.org/project/pypiserver (basically allows you to create a server and upload wheel files but this isn't needed as you simply use github to upload and download from there.). The steps to use this can be found in this [video](https://www.youtube.com/watch?v=UCY12pGM4oM&ab_channel=AustinTechLive) and the documentation.
+The following steps are for the Linux environment.
 
-## Documentation on the actual issue
-1. https://discuss.python.org/t/support-wasm-wheels-on-pypi/21924/8 (Google search: "python wheel webassembly" resulted in this)
-This comment in the discussion is important:
+## Creating a pyodide docker container
+Now we need to create a pyodide package for tiktoken refer to https://github.com/pyodide/pyodide/blob/main/docs/development/new-packages.md and https://github.com/huggingface/tokenizers/issues/1010
+```bash
+git clone https://github.com/pyodide/pyodide && cd pyodide
+# pre-built flag is not present as stated in issue 1010 of huggingface tokenizer
+./run_docker
+make
+
+# installing rust with nightly toolchain
+sudo apt update
+sudo apt install curl
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source $HOME/.cargo/env
+rustup toolchain install nightly
+rustup target add --toolchain nightly wasm32-unknown-emscripten
+rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+
+# once this is done we need to install maturin and  emsdk
+# emsdk seems to install on the make step of the code too so is this required?
+pip install -U maturin
+pip install ./pyodide-build
+
+# Set up emscripten 3.1.14. As of pyodide 0.21.0a3, pyodide is compiled against emscripten 3.1.14 and any extension module must also be compiled against the same version.
+# https://github.com/pola-rs/polars/issues/3672
+git clone https://github.com/emscripten-core/emsdk.git # tested and working at commit hash 961e66c
+cd emsdk/
+./emsdk install 3.1.14
+./emsdk activate 3.1.14
+source ./emsdk_env.sh
+
+# https://github.com/huggingface/tokenizers/issues/1010
+git clone https://github.com/openai/tiktoken.git
+pip install --upgrade pip
+pip install setuptools_rust
+sudo apt-get install pkg-config libssl-dev
+cd tiktoken
+python setup.py install --user
+sudo apt-get install vim
+vim tiktoken_test.py
 ```
-There are docs about it here . As far as I know for now the only Python package with Rust extensions we build is cryptography (but that uses setuptools-rust). There was some work on building tokenizers with mathurin in pyodide#2816 . @hoodmane who worked on this, might know more.
-```
-2. https://micropip.pyodide.org/en/stable/project/usage.html
-They actually state the problem here:
-```
-If a package has C-extensions (or any other compiled codes like Rust), it will not have a pure Python wheel on PyPI.
 
-Trying to install such a package with micropip.install will result in an error like:
+Once the file opens paste the following into it
+```python
+import tiktoken
+enc = tiktoken.get_encoding("cl100k_base")
+if (enc.decode(enc.encode("hello world")) == "hello world"):
+    print("encoding and decoding test passed!")
+else:
+    print("encoding and decoding test failed...")
 
-ValueError: Can't find a pure Python 3 wheel for 'tensorflow'.
-See: https://pyodide.org/en/stable/usage/faq.html#micropip-can-t-find-a-pure-python-wheel
-You can use `await micropip.install(..., keep_going=True)` to get a list of all packages with missing wheels.
-To install such a package, you need to first build a Python wheels for WASM/Emscripten for it.
-
-Note that pyodide provides several commonly used packages with pre-built wheels. Those packages can be installed with micropip.install("package-name").
-```
-3. https://pyodide.org/en/stable/development/new-packages.html
-```
-Rust/PyO3 Packages
-We currently build cryptography which is a Rust extension built with PyO3 and setuptools-rust. It should be reasonably easy to build other Rust extensions. If you want to build a package with Rust extension, you will need Rust >= 1.41, and you need to set the rustup toolchain to nightly, and the target to wasm32-unknown-emscripten in the build script as shown here, but other than that there may be no other issues if you are lucky.
-
-As mentioned here, by default certain wasm-related RUSTFLAGS are set during build.script and can be removed with export RUSTFLAGS="".
-
-If your project builds using maturin, you need to use maturin 0.14.14 or later. It is pretty easy to patch an existing project (see projects/fastparquet/meta.yaml for an example)
-
-So I downloaded emscripten
-https://emscripten.org/docs/getting_started/downloads.html#installation-instructions-using-the-emsdk-recommended
+# To get the tokeniser corresponding to a specific model in the OpenAI API:
+enc = tiktoken.encoding_for_model("gpt-4")
 ```
 
-Code:
+This should print the following:
+```bash
+encoding and decoding test passed!
+```
 
+```bash
+# in the tiktoken directory - this builds the tiktoken wasm wheel
+RUSTUP_TOOLCHAIN=nightly maturin build --release -o dist --target wasm32-unknown-emscripten -i python3.10
+```
+
+Then we need to download the wheel. So, outside the docker container terminal i.e. your own terminal run the following
+
+```
+docker ps -a
+# notedown the container name that your container runs on
+# now download the wheel file to your local filesystem
+# for me this looked like
+docker cp 293695c6e022:/src/tiktoken/dist/tiktoken-0.5.1-cp310-cp310-emscripten_3_1_14_wasm32.whl .
+```
+
+## Tiktoken Request Library Issues
+1. Requests library dependency issue: https://www.google.com/search?q=pyodide+requests (how to use the requests library in python) lands us here: https://github.com/pyodide/pyodide/issues/398 where you can see at the bottom that @lesteve metions how scikit-bio v0.5.8 needs to be implemented with pyodide (https://github.com/pyodide/pyodide/pull/3858) and this lands us here (https://github.com/pyodide/pyodide/issues/3876) 
+
+```
+So with monekypatching in pyodide-http, requests should work. However, the question remains how we should deal with packages that have a mandatory dependency on requests.
+
+There could be several options,
+
+1. Try to make requests optional in the package, at least so that imports wouldn't fail if requests is not installed. Then letting users install pyodide-http and requests dependencies themselves.
+2. Physically add requests to our dependency tree. So far we have been reluctant to do this since it won't work with either pyodide-http or some comparable workarounds. This would be probably the most straightforward solution, but for instance as far as I understand JupyterLite doesn't use pyodide-http in a webworker, so we need to be sure it's not breaking their approach. cc @bollwyvl
+3. Same as 2 but depending on the PyPI package, instead of re-packaging the pure python wheel on our side. This functionality is not yet supported.
+```
+The most promising one out of all of these is in the tiktoken package we make requests an optional requirement line 9 in pyproject.toml (https://github.com/openai/tiktoken/blob/main/pyproject.toml)
+```toml
+dependencies = ["regex>=2022.1.18", "requests>=2.26.0"]
+optional-dependencies = {blobfile = ["blobfile>=2"]}
+```
+
+changes to:
+```toml
+dependencies = ["regex>=2022.1.18"]
+optional-dependencies = {blobfile = ["blobfile>=2"], requests = ["requests>=2.26.0"]}
+```
+
+## Relevant Links (Additional notes)
+1. https://github.com/PyO3/maturin: zero configuration replacement for setuptools-rust and milksnake. It supports building wheels for python 3.7+ on windows, linux, mac and freebsd, can upload them to pypi and has basic pypy and graalpy support.
+2. https://emscripten.org/docs/getting_started/downloads.html: download emscripten for your OS
+3. https://github.com/pyodide/pyodide/blob/main/docs/development/new-packages.md: general process to getting a Python package working in the browser with Pyodide
+
+## URL Journeys
+1. https://discuss.python.org/t/support-wasm-wheels-on-pypi/21924/9 &rarr; https://github.com/pyodide/pyodide/issues/2816 &rarr; https://github.com/huggingface/tokenizers/issues/1010
+2. https://github.com/PyO3/maturin/pull/974 &rarr; https://github.com/pola-rs/polars/issues/3672 (promising comment by @kylebarron going over the pyodide build)
+<!--
+Additional scrapped off notes...
+## Step 1. Reinstalling Rust with Nightly Build
+If you've already installed rust you probably need to reinstall it with the nightly build. Here are the steps I've taken to do the same:
+```bash
+# uninstall rust
+rustup self uninstall -y
+# install rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source $HOME/.cargo/env
+rustup toolchain install nightly
+rustup target add --toolchain nightly wasm32-unknown-emscripten
+rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+```
+
+## Step 2. Emscripten Setup
+Now we need to setup emscripten for the wasm build of the wheel
 ```bash
 sudo apt-get install python3
 sudo apt-get install cmake
@@ -48,40 +132,7 @@ sudo apt-get install git
 git clone https://github.com/emscripten-core/emsdk.git
 cd emsdk
 git pull
-# Download and install the latest SDK tools.
-./emsdk install latest
-# Make the "latest" SDK "active" for the current user. (writes .emscripten file)
-./emsdk activate latest
-# Activate PATH and other environment variables in the current terminal
-source ./emsdk_env.sh
-# verify the emscripten version
-```
-
-From ![here](https://discuss.python.org/t/support-wasm-wheels-on-pypi/21924/8) you end up here: https://github.com/pyodide/pyodide/issues/2816 which highlights the exact steps to take to set this up:
-```
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-source $HOME/.cargo/env
-rustup toolchain install nightly
-rustup target add --toolchain nightly wasm32-unknown-emscripten
-rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
-sudo pip install maturin==0.13.0b8
-git clone --depth 1 --branch 3.1.14 https://github.com/emscripten-core/emsdk
-cd emsdk
 ./emsdk install latest
 ./emsdk activate latest
 source ./emsdk_env.sh
-cd ../bindings/python
-RUSTUP_TOOLCHAIN=nightly maturin build --release -o dist --target wasm32-unknown-emscripten -i python3.10
-```
-
-## Real examples of the issue
-1. Do have a look at this work that he did for tokenizers: https://github.com/josephrocca/tokenizers/tree/pyodide and https://github.com/josephrocca/tokenizers-pyodide
-2. Another related issue: https://github.com/huggingface/tokenizers/issues/1010
-3. Getting this to work, understanding micropips, wheels and working with python on the web: https://www.youtube.com/watch?v=iJmQIfmtfVk&ab_channel=MattCodes and https://www.youtube.com/watch?v=zjtQZkKV1zA&ab_channel=MattCodes
-4. Another relevant path (look at this on 20th October 2023):
-https://pyodide.org/en/stable/development/building-and-testing-packages.html#building-and-testing-packages-out-of-tree
-https://pyodide.org/en/stable/development/building-and-testing-packages.html#building-and-testing-packages-out-of-tree
-
-Error in index.html: Wheel platform 'linux_x86_64' is not compatible with Pyodide's platform 'emscripten-3.1.45-wasm32'
-Related issues: https://github.com/pypa/cibuildwheel/issues/1002
-
+``` -->
