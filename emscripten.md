@@ -21,8 +21,16 @@ rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
 
 # once this is done we need to install maturin and  emsdk
 # emsdk seems to install on the make step of the code too so is this required?
-cargo install --git https://github.com/PyO3/maturin.git maturin
+pip install -U maturin
 pip install ./pyodide-build
+
+# Set up emscripten 3.1.14. As of pyodide 0.21.0a3, pyodide is compiled against emscripten 3.1.14 and any extension module must also be compiled against the same version.
+# https://github.com/pola-rs/polars/issues/3672
+git clone https://github.com/emscripten-core/emsdk.git # tested and working at commit hash 961e66c
+cd emsdk/
+./emsdk install 3.1.14
+./emsdk activate 3.1.14
+source ./emsdk_env.sh
 
 # https://github.com/huggingface/tokenizers/issues/1010
 git clone https://github.com/openai/tiktoken.git
@@ -53,6 +61,20 @@ This should print the following:
 encoding and decoding test passed!
 ```
 
+```bash
+# in the tiktoken directory - this builds the tiktoken wasm wheel
+RUSTUP_TOOLCHAIN=nightly maturin build --release -o dist --target wasm32-unknown-emscripten -i python3.10
+```
+
+Then we need to download the wheel. So, outside the docker container terminal i.e. your own terminal run the following
+
+```
+docker ps -a
+# notedown the container name that your container runs on
+# now download the wheel file to your local filesystem
+# for me this looked like
+docker cp 293695c6e022:/src/tiktoken/dist/tiktoken-0.5.1-cp310-cp310-emscripten_3_1_14_wasm32.whl .
+```
 
 ## Tiktoken Request Library Issues
 1. Requests library dependency issue: https://www.google.com/search?q=pyodide+requests (how to use the requests library in python) lands us here: https://github.com/pyodide/pyodide/issues/398 where you can see at the bottom that @lesteve metions how scikit-bio v0.5.8 needs to be implemented with pyodide (https://github.com/pyodide/pyodide/pull/3858) and this lands us here (https://github.com/pyodide/pyodide/issues/3876) 
@@ -84,8 +106,8 @@ optional-dependencies = {blobfile = ["blobfile>=2"], requests = ["requests>=2.26
 3. https://github.com/pyodide/pyodide/blob/main/docs/development/new-packages.md: general process to getting a Python package working in the browser with Pyodide
 
 ## URL Journeys
-https://discuss.python.org/t/support-wasm-wheels-on-pypi/21924/9 &rarr; https://github.com/pyodide/pyodide/issues/2816 &rarr; https://github.com/huggingface/tokenizers/issues/1010
-
+1. https://discuss.python.org/t/support-wasm-wheels-on-pypi/21924/9 &rarr; https://github.com/pyodide/pyodide/issues/2816 &rarr; https://github.com/huggingface/tokenizers/issues/1010
+2. https://github.com/PyO3/maturin/pull/974 &rarr; https://github.com/pola-rs/polars/issues/3672 (promising comment by @kylebarron going over the pyodide build)
 <!--
 Additional scrapped off notes...
 ## Step 1. Reinstalling Rust with Nightly Build
@@ -114,3 +136,4 @@ git pull
 ./emsdk activate latest
 source ./emsdk_env.sh
 ``` -->
+
