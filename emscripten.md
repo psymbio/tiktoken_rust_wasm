@@ -2,32 +2,57 @@
 
 The following steps are for the Linux environment.
 
-## Step 1. Reinstalling Rust with Nightly Build
-If you've already installed rust you probably need to reinstall it with the nightly build. Here are the steps I've taken to do the same:
+## Creating a pyodide docker container
+Now we need to create a pyodide package for tiktoken refer to https://github.com/pyodide/pyodide/blob/main/docs/development/new-packages.md and https://github.com/huggingface/tokenizers/issues/1010
 ```bash
-# uninstall rust
-rustup self uninstall -y
-# install rust
+git clone https://github.com/pyodide/pyodide && cd pyodide
+# pre-built flag is not present as stated in issue 1010 of huggingface tokenizer
+./run_docker
+make
+
+# installing rust with nightly toolchain
+sudo apt update
+sudo apt install curl
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source $HOME/.cargo/env
 rustup toolchain install nightly
 rustup target add --toolchain nightly wasm32-unknown-emscripten
 rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+
+# once this is done we need to install maturin and  emsdk
+# emsdk seems to install on the make step of the code too so is this required?
+cargo install --git https://github.com/PyO3/maturin.git maturin
+pip install ./pyodide-build
+
+# https://github.com/huggingface/tokenizers/issues/1010
+git clone https://github.com/openai/tiktoken.git
+pip install --upgrade pip
+pip install setuptools_rust
+sudo apt-get install pkg-config libssl-dev
+cd tiktoken
+python setup.py install --user
+sudo apt-get install vim
+vim tiktoken_test.py
 ```
 
-## Step 2. Emscripten Setup
-Now we need to setup emscripten for the wasm build of the wheel
-```bash
-sudo apt-get install python3
-sudo apt-get install cmake
-sudo apt-get install git
-git clone https://github.com/emscripten-core/emsdk.git
-cd emsdk
-git pull
-./emsdk install latest
-./emsdk activate latest
-source ./emsdk_env.sh
+Once the file opens paste the following into it
+```python
+import tiktoken
+enc = tiktoken.get_encoding("cl100k_base")
+if (enc.decode(enc.encode("hello world")) == "hello world"):
+    print("encoding and decoding test passed!")
+else:
+    print("encoding and decoding test failed...")
+
+# To get the tokeniser corresponding to a specific model in the OpenAI API:
+enc = tiktoken.encoding_for_model("gpt-4")
 ```
+
+This should print the following:
+```bash
+encoding and decoding test passed!
+```
+
 
 ## Tiktoken Request Library Issues
 1. Requests library dependency issue: https://www.google.com/search?q=pyodide+requests (how to use the requests library in python) lands us here: https://github.com/pyodide/pyodide/issues/398 where you can see at the bottom that @lesteve metions how scikit-bio v0.5.8 needs to be implemented with pyodide (https://github.com/pyodide/pyodide/pull/3858) and this lands us here (https://github.com/pyodide/pyodide/issues/3876) 
@@ -58,5 +83,34 @@ optional-dependencies = {blobfile = ["blobfile>=2"], requests = ["requests>=2.26
 2. https://emscripten.org/docs/getting_started/downloads.html: download emscripten for your OS
 3. https://github.com/pyodide/pyodide/blob/main/docs/development/new-packages.md: general process to getting a Python package working in the browser with Pyodide
 
-## URL Journey
+## URL Journeys
 https://discuss.python.org/t/support-wasm-wheels-on-pypi/21924/9 &rarr; https://github.com/pyodide/pyodide/issues/2816 &rarr; https://github.com/huggingface/tokenizers/issues/1010
+
+<!--
+Additional scrapped off notes...
+## Step 1. Reinstalling Rust with Nightly Build
+If you've already installed rust you probably need to reinstall it with the nightly build. Here are the steps I've taken to do the same:
+```bash
+# uninstall rust
+rustup self uninstall -y
+# install rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source $HOME/.cargo/env
+rustup toolchain install nightly
+rustup target add --toolchain nightly wasm32-unknown-emscripten
+rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+```
+
+## Step 2. Emscripten Setup
+Now we need to setup emscripten for the wasm build of the wheel
+```bash
+sudo apt-get install python3
+sudo apt-get install cmake
+sudo apt-get install git
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+git pull
+./emsdk install latest
+./emsdk activate latest
+source ./emsdk_env.sh
+``` -->
