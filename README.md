@@ -68,7 +68,7 @@ RUSTUP_TOOLCHAIN=nightly maturin build --release -o dist --target wasm32-unknown
 
 Then we need to download the wheel. So, outside the docker container terminal i.e. your own terminal run the following
 
-```
+```bash
 docker ps -a
 # notedown the container id that your container runs on
 # now download the wheel file to your local filesystem
@@ -77,7 +77,7 @@ docker cp 293695c6e022:/src/tiktoken/dist/tiktoken-0.5.1-cp310-cp310-emscripten_
 ```
 
 Now after checking the compilation of the code I end up with this error:
-```console
+```javascript
 Uncaught (in promise) PythonError: Traceback (most recent call last):
   File "/lib/python3.11/site-packages/micropip/_commands/install.py", line 142, in install
     await transaction.gather_requirements(requirements)
@@ -128,6 +128,71 @@ Then once again copy it to your local from the docker container (tiktoken-0.5.1-
 docker cp 293695c6e022:/src/tiktoken/dist/tiktoken-0.5.1-cp311-cp311-emscripten_3_1_45_wasm32.whl .
 ```
 
+finally in index3.html we get this error
+```javascript
+ValueError: Can't fetch wheel from 'https://github.com/psymbio/tiktoken_rust_wasm/blob/main/packages/build_emscripten/tiktoken-0.5.1-cp311-cp311-emscripten_3_1_45_wasm32.whl'. One common reason for this is when the server blocks Cross-Origin Resource Sharing (CORS). Check if the server is sending the correct 'Access-Control-Allow-Origin' header.
+```
+resolve it by setting relative file path of the .whl file instead of the github link
+
+Now we get this error:
+```javascript
+Uncaught (in promise) PythonError: Traceback (most recent call last):
+  File "/lib/python311.zip/_pyodide/_base.py", line 499, in eval_code
+    .run(globals, locals)
+     ^^^^^^^^^^^^^^^^^^^^
+  File "/lib/python311.zip/_pyodide/_base.py", line 340, in run
+    coroutine = eval(self.code, globals, locals)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<exec>", line 2, in <module>
+  File "/lib/python3.11/site-packages/tiktoken/registry.py", line 73, in get_encoding
+    enc = Encoding(**constructor())
+                     ^^^^^^^^^^^^^
+  File "/lib/python3.11/site-packages/tiktoken_ext/openai_public.py", line 64, in cl100k_base
+    mergeable_ranks = load_tiktoken_bpe(
+                      ^^^^^^^^^^^^^^^^^^
+  File "/lib/python3.11/site-packages/tiktoken/load.py", line 116, in load_tiktoken_bpe
+    contents = read_file_cached(tiktoken_bpe_file)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/lib/python3.11/site-packages/tiktoken/load.py", line 48, in read_file_cached
+    contents = read_file(blobpath)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/lib/python3.11/site-packages/tiktoken/load.py", line 24, in read_file
+    resp = requests.get(blobpath)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/lib/python3.11/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/lib/python3.11/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/lib/python3.11/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/lib/python3.11/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/lib/python3.11/site-packages/requests/adapters.py", line 486, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/lib/python3.11/site-packages/urllib3/connectionpool.py", line 770, in urlopen
+    conn = self._get_conn(timeout=pool_timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/lib/python3.11/site-packages/urllib3/connectionpool.py", line 296, in _get_conn
+    return conn or self._new_conn()
+                   ^^^^^^^^^^^^^^^^
+  File "/lib/python3.11/site-packages/urllib3/connectionpool.py", line 1061, in _new_conn
+    raise ImportError(
+ImportError: Can't connect to HTTPS URL because the SSL module is not available.
+
+    at new_error (pyodide.asm.js:9:12519)
+    at pyodide.asm.wasm:0x158827
+    at pyodide.asm.wasm:0x15892c
+    at Module._pythonexc2js (pyodide.asm.js:9:640895)
+    at Module.callPyObjectKwargs (pyodide.asm.js:9:81856)
+    at Proxy.callKwargs (pyodide.asm.js:9:97507)
+    at Object.runPython (pyodide.asm.js:9:118859)
+    at main (index3.html:14:29)
+```
 
 ## Tiktoken Request Library Issues
 1. Requests library dependency issue: https://www.google.com/search?q=pyodide+requests (how to use the requests library in python) lands us here: https://github.com/pyodide/pyodide/issues/398 where you can see at the bottom that @lesteve metions how scikit-bio v0.5.8 needs to be implemented with pyodide (https://github.com/pyodide/pyodide/pull/3858) and this lands us here (https://github.com/pyodide/pyodide/issues/3876) 
