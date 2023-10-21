@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+
+    // The below code works!!
+    //  async function main() {
+    //     let pyodide = await loadPyodide();
+    //     await pyodide.loadPackage("micropip");
+    //     const micropip = pyodide.pyimport("micropip");
+    //     await micropip.install("pulp");
+    //     let pythonCode = await (await fetch("main.py")).text(); 
+    //     console.log(pyodide.runPython(pythonCode));
+    //  }
+    // main();
+
+    async function main() {
+        let pyodide = await loadPyodide();
+        await pyodide.loadPackage("micropip");
+        const micropip = pyodide.pyimport("micropip");
+        await micropip.install("packages/build_original_library/tiktoken-0.5.1-cp39-cp39-linux_x86_64.whl");
+        let pythonCode = await (await fetch("tiktoken_test.py")).text(); 
+        console.log(pyodide.runPython(pythonCode));
+     }
+    main();
+
+    /* ERROR:
+    pyodide.asm.js:9 Uncaught (in promise) PythonError: Traceback (most recent call last):
+  File "/lib/python3.11/site-packages/micropip/_commands/install.py", line 142, in install
+    await transaction.gather_requirements(requirements)
+  File "/lib/python3.11/site-packages/micropip/transaction.py", line 204, in gather_requirements
+    await asyncio.gather(*requirement_promises)
+  File "/lib/python3.11/site-packages/micropip/transaction.py", line 215, in add_requirement
+    check_compatible(wheel.filename)
+  File "/lib/python3.11/site-packages/micropip/_utils.py", line 151, in check_compatible
+    raise ValueError(
+ValueError: Wheel platform 'linux_x86_64' is not compatible with Pyodide's platform 'emscripten-3.1.45-wasm32'
+    */
+    </script>
+  </body>
+</html>
