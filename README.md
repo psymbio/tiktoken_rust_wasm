@@ -12,7 +12,7 @@ make
 
 # installing rust with nightly toolchain
 sudo apt update
-sudo apt install curl
+sudo apt install curl -y
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source $HOME/.cargo/env
 rustup toolchain install nightly
@@ -20,26 +20,31 @@ rustup target add --toolchain nightly wasm32-unknown-emscripten
 rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
 
 # once this is done we need to install maturin and  emsdk
-# emsdk seems to install on the make step of the code too so is this required?
 pip install -U maturin
 pip install ./pyodide-build
 
 # Set up emscripten 3.1.14. As of pyodide 0.21.0a3, pyodide is compiled against emscripten 3.1.14 and any extension module must also be compiled against the same version.
 # https://github.com/pola-rs/polars/issues/3672
+rm -rf emsdk
 git clone https://github.com/emscripten-core/emsdk.git # tested and working at commit hash 961e66c
 cd emsdk/
 ./emsdk install 3.1.45 # new update changed from 3.1.14 to 3.1.45
 ./emsdk activate 3.1.45
 source "/src/emsdk/emsdk_env.sh"
 
+cd ..
 # https://github.com/huggingface/tokenizers/issues/1010
-git clone https://github.com/openai/tiktoken.git
+
+# NEW UPDATE: NOW CHANGING THE CLONE OF TIKTOKEN
+# git clone https://github.com/openai/tiktoken.git
+git clone https://github.com/psymbio/tiktoken
 pip install --upgrade pip
-pip install setuptools_rust
+pip install setuptools_rust pyodide-http
 sudo apt-get install pkg-config libssl-dev
 cd tiktoken
 python setup.py install --user
-sudo apt-get install vim
+cd ..
+sudo apt-get install vim -y
 vim tiktoken_test.py
 ```
 
@@ -56,13 +61,14 @@ else:
 enc = tiktoken.encoding_for_model("gpt-4")
 ```
 
-This should print the following:
+Running this using `python3 tiktoken_test.py` should print the following:
 ```bash
 encoding and decoding test passed!
 ```
 
 ```bash
 # in the tiktoken directory - this builds the tiktoken wasm wheel
+cd tiktoken/
 RUSTUP_TOOLCHAIN=nightly maturin build --release -o dist --target wasm32-unknown-emscripten -i python3.10
 ```
 
@@ -197,6 +203,9 @@ ImportError: Can't connect to HTTPS URL because the SSL module is not available.
 Also, requests library is something that doesn't work at all - look at https://github.com/pyodide/pyodide/issues/3711 (very recent issue) and developers agree on that fact
 
 --> will resolve on 2023/10/21
+
+## 2023/10/29 Updates
+To resolve the requests library I have created my version of the code (https://github.com/psymbio/tiktoken) and added the http-pyodide patch for the requests library. Now I will take the steps again.
 
 ## Tiktoken Request Library Issues
 1. Requests library dependency issue: https://www.google.com/search?q=pyodide+requests (how to use the requests library in python) lands us here: https://github.com/pyodide/pyodide/issues/398 where you can see at the bottom that @lesteve metions how scikit-bio v0.5.8 needs to be implemented with pyodide (https://github.com/pyodide/pyodide/pull/3858) and this lands us here (https://github.com/pyodide/pyodide/issues/3876) 

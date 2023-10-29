@@ -9,7 +9,7 @@
         let pyodide = await loadPyodide();
         await pyodide.loadPackage("micropip");
         const micropip = pyodide.pyimport("micropip");
-        await micropip.install("packages/build_emscripten/tiktoken-0.5.1-cp311-cp311-emscripten_3_1_45_wasm32.whl");
+        await micropip.install("packages/build_emscripten_pyodide_http_2/tiktoken-0.5.1-cp311-cp311-emscripten_3_1_45_wasm32.whl");
         let pythonCode = await (await fetch("tiktoken_test.py")).text(); 
         console.log(pyodide.runPython(pythonCode));
      }
