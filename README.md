@@ -13,6 +13,7 @@ make
 # installing rust with nightly toolchain
 sudo apt update
 sudo apt install curl -y
+
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source $HOME/.cargo/env
 rustup toolchain install nightly
@@ -38,11 +39,18 @@ cd ..
 # NEW UPDATE: NOW CHANGING THE CLONE OF TIKTOKEN
 # git clone https://github.com/openai/tiktoken.git
 git clone https://github.com/psymbio/tiktoken
+
+# UPDATE 2023/11/01: changing to the cached_weights branch
+cd tiktoken
+git branch
+git checkout cached_weights
+
 pip install --upgrade pip
 pip install setuptools_rust pyodide-http
 sudo apt-get install pkg-config libssl-dev
-cd tiktoken
-python setup.py install --user
+
+# python setup.py install --user
+pip install .
 cd ..
 sudo apt-get install vim -y
 vim tiktoken_test.py
@@ -206,6 +214,17 @@ Also, requests library is something that doesn't work at all - look at https://g
 
 ## 2023/10/29 Updates
 To resolve the requests library I have created my version of the code (https://github.com/psymbio/tiktoken) and added the http-pyodide patch for the requests library. Now I will take the steps again.
+
+## 2023/10/31 Updates
+I got this error:
+```
+pyodide.asm.js:9 Access to XMLHttpRequest at 'https://openaipublic.blob.core.windows.net/encodings/cl100k_base.tiktoken' from origin 'http://127.0.0.1:5500' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+```
+
+Resolution for this is caching the weights therefore, I created a new branch called `cached_weights` in https://github.com/psymbio/tiktoken/tree/cached_weights and I'll create a new wheel using this branch and then store that wheel in the packages/build_emscripten_cached_weights/ directory and try the whole process all over again.
+
+## 2023/11/01 Updates
+I had some errors with paths of the cached_weights can across this: https://stackoverflow.com/questions/1011337/relative-file-paths-in-python-packages basically goes over how to deal with paths in a python library using `os.path.dirname(__file__)`, trying to implemenet it once more.
 
 ## Tiktoken Request Library Issues
 1. Requests library dependency issue: https://www.google.com/search?q=pyodide+requests (how to use the requests library in python) lands us here: https://github.com/pyodide/pyodide/issues/398 where you can see at the bottom that @lesteve metions how scikit-bio v0.5.8 needs to be implemented with pyodide (https://github.com/pyodide/pyodide/pull/3858) and this lands us here (https://github.com/pyodide/pyodide/issues/3876) 
