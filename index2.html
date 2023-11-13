@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+    async function main() {
+        let pyodide = await loadPyodide();
+        await pyodide.loadPackage("micropip");
+        const micropip = pyodide.pyimport("micropip");
+        await micropip.install("packages/openai_wheel/openai-1.1.1-py3-none-any.whl");
+        await micropip.install("ssl");
+        await micropip.install("pyodide-http");
+        pyodide.runPython("import pyodide_http; pyodide_http.patch_all()")
+        let pythonCode = await (await fetch("openai_test.py")).text(); 
+        console.log(pyodide.runPython(pythonCode));
+     }
+    main();
+    </script>
+  </body>
+</html>
