@@ -293,10 +293,19 @@ source ./emsdk_env.sh
 MULTIDICT_NO_EXTENSIONS=1 python3 setup.py bdist_wheel
 ```
 
-### Building Pure Python Wheel for aiohttp
+## Building Pure Python Wheel for aiohttp
 ```bash
 git clone https://github.com/aio-libs/aiohttp.git
+cd aiohttp
 git submodule update --init
 export AIOHTTP_NO_EXTENSIONS=True
+python3 setup.py bdist_wheel
+```
+
+## Building Pure Python Wheel for Frozenlist
+```bash
+git clone https://github.com/aio-libs/frozenlist.git
+cd frozenlist
+export FROZENLIST_NO_EXTENSIONS=True
 python3 setup.py bdist_wheel
 ```
