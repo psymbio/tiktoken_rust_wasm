@@ -286,3 +286,17 @@ git pull
 ./emsdk activate latest
 source ./emsdk_env.sh
 ``` -->
+
+
+## Building Pure Python Wheel for multidict v4.7.6 - this available in the README.rst
+```bash
+MULTIDICT_NO_EXTENSIONS=1 python3 setup.py bdist_wheel
+```
+
+### Building Pure Python Wheel for aiohttp
+```bash
+git clone https://github.com/aio-libs/aiohttp.git
+git submodule update --init
+export AIOHTTP_NO_EXTENSIONS=True
+python3 setup.py bdist_wheel
+```
