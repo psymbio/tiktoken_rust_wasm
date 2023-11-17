@@ -287,6 +287,12 @@ git pull
 source ./emsdk_env.sh
 ``` -->
 
+## Building Pure Python wheel for Openai
+```bash
+git clone -b release-v0.28.1 https://github.com/openai/openai-python.git
+cd openai-python/
+python -m build
+```
 
 ## Building Pure Python Wheel for multidict v4.7.6 - this available in the README.rst
 ```bash
